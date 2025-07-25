@@ -21,9 +21,9 @@ BASE_URL = 'https://transtats.bts.gov/PREZIP/On_Time_Marketing_Carrier_On_Time_P
 UNZIP_DIR = './data/unzipped_files'
 SPLIT_DIR = UNZIP_DIR + "_split"
 START_YEAR = 2018
-START_MONTH = 1
-END_YEAR = None  # Will be calculated based on the current date
-END_MONTH = None  # Will be calculated based on the current date
+START_MONTH = 8
+END_YEAR = 2018  # Will be calculated based on the current date
+END_MONTH = 12  # Will be calculated based on the current date
 
 
 def get_months_to_extract(start_year=2018, start_month=1, end_year=None, end_month=None):
@@ -116,7 +116,7 @@ def split_csv(file_dir = UNZIP_DIR, output_dir = SPLIT_DIR , chunk_size=50000):
         open_and_chunk(flight_csv, chunk_size)
     except UnicodeDecodeError as ude:
         logging.warning(f"UnicodeDecodeError while reading {flight_csv}: {ude}")
-        logger.warning("Attempting to read with 'ISO-8859-1' encoding.")
+        logging.warning("Attempting to read with 'ISO-8859-1' encoding.")
         try:
             open_and_chunk(flight_csv, chunk_size, encoding='ISO-8859-1')
         except Exception as e:
