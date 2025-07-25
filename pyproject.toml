@@ -8,10 +8,13 @@ sections = ["FUTURE", "STDLIB", "FIRSTPARTY", "THIRDPARTY", "LOCALFOLDER"]
 
 
 [project]
-
+name = "dlt-flights"
+version = "0.1.0"
+description = "A data pipeline for processing flight data using dlt."
+readme = "README.md"
+requires-python = ">=3.13"
 dependencies = [
-    dlt[filesystem,postgres]>=1.12.3
-        dlt[postgres]>=1.12.3
-        dlt[filesystem]>=1.12.3
-
+    "dlt[postgres]>=1.12.3",
+    "dlt[filesystem]>=1.12.3",
+    "pandas>=2.3.1",
 ]
