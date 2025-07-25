@@ -19,9 +19,9 @@ logging.basicConfig(
 BASE_URL = "https://transtats.bts.gov/PREZIP/On_Time_Marketing_Carrier_On_Time_Performance_Beginning_January_2018_"
 UNZIP_DIR = "./data/unzipped_files"
 SPLIT_DIR = UNZIP_DIR + "_split"
-START_YEAR = 2018
-START_MONTH = 8
-END_YEAR = 2018  # Will be calculated based on the current date
+START_YEAR = 2020
+START_MONTH = 2
+END_YEAR = 2020  # Will be calculated based on the current date
 END_MONTH = 12  # Will be calculated based on the current date
 
 
@@ -171,6 +171,9 @@ def run_pipeline(
     )
 
     for file in os.listdir(file_dir):
+        if not file.endswith(".csv"):
+            logging.warning(f"Skipping non-CSV file: {file}")
+            continue
         logging.info(f"Processing file: {file}")
         # Create a filesystem source for the file
         fs = (
