@@ -20,34 +20,45 @@ logging.basicConfig(
 BASE_URL = 'https://transtats.bts.gov/PREZIP/On_Time_Marketing_Carrier_On_Time_Performance_Beginning_January_2018_'
 UNZIP_DIR = './data/unzipped_files'
 SPLIT_DIR = UNZIP_DIR + "_split"
+START_YEAR = 2018
+START_MONTH = 1
+END_YEAR = None  # Will be calculated based on the current date
+END_MONTH = None  # Will be calculated based on the current date
 
-# Start and end dates
-start_year = 2018
-start_month = 8
 
-# Current year and month
-current_year = datetime.now().year
-current_month = datetime.now().month
+def get_months_to_extract(start_year=2018, start_month=1, end_year=None, end_month=None):
+    """Generate a list of month-year combinations from January 2018 to, at most, three months prior to the current date."""
+    # Ensure the directories exist
+    os.makedirs(UNZIP_DIR, exist_ok=True)
+    os.makedirs(SPLIT_DIR, exist_ok=True)
+    logging.info("Directories created or already exist.")
+    # If end_year and end_month are not provided, calculate them
+    if end_year is None or end_month is None:
+        current_year = datetime.now().year
+        current_month = datetime.now().month
+        
+        # Calculate the year and month three months prior
+        if current_month <= 3:
+            end_year = current_year - 1
+            end_month = current_month + 9  # Wrap around to the previous year
+        else:
+            end_year = current_year
+            end_month = current_month - 3
+    # Generate the list of month-year combinations
+    logging.info(f"Generating month-year list from {start_year}_{start_month} to {end_year}_{end_month}")
+    month_year_list = []
+    for year in range(start_year, end_year + 1):
+        if year == start_year:
+            start_month_range = start_month
+        else:
+            start_month_range = 1
+        for month in range(start_month_range, 13):
+            if year == end_year and month > end_month:
+                break
+            month_year_list.append(f"{year}_{month}")
+    return month_year_list
 
-# Calculate the year and month three months prior
-if current_month <= 3:
-    end_year = current_year - 1
-    end_month = current_month + 9  # Wrap around to the previous year
-else:
-    end_year = current_year
-    end_month = current_month - 3
 
-# Generate the list of month-year combinations
-month_year_list = []
-for year in range(start_year, end_year + 1):
-    if year == start_year:
-        start_month_range = start_month
-    else:
-        start_month_range = 1
-    for month in range(start_month_range, 13):
-        if year == end_year and month > end_month:
-            break
-        month_year_list.append(f"{year}_{month}")
 
 def generate_url(month_year, base_url=BASE_URL):
     """Generate the URL for a given month-year combination."""
@@ -77,7 +88,7 @@ def split_csv(file_dir = UNZIP_DIR, output_dir = SPLIT_DIR , chunk_size=50000):
         Adapted from https://www.mungingdata.com/python/split-csv-write-chunk-pandas/
     """
     
-    def write_chunk(part, lines):
+    def write_chunk(part, header, lines):
         """Write a chunk of lines to a new CSV file."""
         logging.info(f"Writing chunk {part} with {len(lines)} lines to file.")
         with open(output_dir + "/" + str(part) +'.csv', 'w') as f_out:
@@ -86,18 +97,32 @@ def split_csv(file_dir = UNZIP_DIR, output_dir = SPLIT_DIR , chunk_size=50000):
     
     flight_csv = glob(os.path.join(file_dir, "*.csv"))[0]  # Assuming there's only one CSV file in the directory
     
-    with open(flight_csv, 'r') as f_in:
-        count = 0
-        header = f_in.readline()  # Read the header line
-        lines = []
-        for line in f_in:
-            lines.append(line)
-            count += 1
-            if count % chunk_size == 0:
-                write_chunk(count // chunk_size, lines)
-                lines = []
-        if lines:  # Write any remaining lines
-            write_chunk(count // chunk_size + 1, lines)
+    def open_and_chunk(flight_csv, chunk_size, encoding='utf-8'):
+        """Open the CSV file and yield chunks of lines."""
+        with open(flight_csv, 'r', encoding=encoding) as f_in:
+            count = 0
+            header = f_in.readline()  # Read the header line
+            lines = []
+            for line in f_in:
+                lines.append(line)
+                count += 1
+                if count % chunk_size == 0:
+                    write_chunk(count // chunk_size, header, lines)
+                    lines = []
+            if lines:  # Write any remaining lines
+                write_chunk(count // chunk_size + 1, header, lines)
+
+    try:
+        open_and_chunk(flight_csv, chunk_size)
+    except UnicodeDecodeError as ude:
+        logging.warning(f"UnicodeDecodeError while reading {flight_csv}: {ude}")
+        logger.warning("Attempting to read with 'ISO-8859-1' encoding.")
+        try:
+            open_and_chunk(flight_csv, chunk_size, encoding='ISO-8859-1')
+        except Exception as e:
+            logging.error(f"An error occurred while reading the file with 'ISO-8859-1' encoding: {e}")
+    except Exception as e:
+            logging.error(f"An error occurred while splitting CSV: {e}")
 
 def delete_files_in_directory(directory):
     """Delete all files in the specified directory."""
@@ -135,6 +160,8 @@ def run_pipeline(month_year, unzip_dir = UNZIP_DIR, file_dir=SPLIT_DIR, fetch=Tr
     delete_files_in_directory(file_dir)  # Clean up files after processing
     logging.info(f"Pipeline run for {month_year} completed with info: {info}")
 
+
+month_year_list = get_months_to_extract(start_year=START_YEAR, start_month=START_MONTH, end_year=END_YEAR, end_month=END_MONTH)
 for month_year in month_year_list:
     # check if the month and year are already in the database
     run_pipeline(month_year, fetch=True)  # Fetch data for each month-year
