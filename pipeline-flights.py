@@ -19,10 +19,10 @@ logging.basicConfig(
 BASE_URL = "https://transtats.bts.gov/PREZIP/On_Time_Marketing_Carrier_On_Time_Performance_Beginning_January_2018_"
 UNZIP_DIR = "./data/unzipped_files"
 SPLIT_DIR = UNZIP_DIR + "_split"
-START_YEAR = 2020
-START_MONTH = 2
-END_YEAR = 2020  # Will be calculated based on the current date
-END_MONTH = 12  # Will be calculated based on the current date
+START_YEAR = 2018
+START_MONTH = 1
+END_YEAR = None  # Will be calculated based on the current date
+END_MONTH = None  # Will be calculated based on the current date
 
 
 def get_months_to_extract(
